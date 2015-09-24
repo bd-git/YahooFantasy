@@ -39,8 +39,6 @@ for i in hpk:
     league_code = make_league_code(i['gameid'], i['leagueid'])
     l = auth.api_query(y, league_data(league_code))
     #grab relevant part of dict
-    print(l)
-    print(type(l))
     this_league = l['fantasy_content']['league']
     leagues.append(this_league)
 
