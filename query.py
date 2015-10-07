@@ -55,22 +55,27 @@ for i in hpk:
     this_league = l['fantasy_content']['league']
     leagues.append(this_league)
 
-    print("Getting Top 375 Rated Free Agent Forwards/Defenders")
-    for count in range(0,400,25):
-        print("...."+str(count))
-        query = player_search(league_url,count)
-        query = auth.api_query(y, query)
-        for k in query['fantasy_content']['league']['players']['player']:
-            rosters.append(update_player_data(y,k,'FA'))
-
     print("Getting Top 50 Rated Free Agent Goalies")
-    for count in range(0,75,25):
+    for count in range(0,50,25):
         print("...."+str(count))
         query = player_search(league_url,count,position="G")
         query = auth.api_query(y, query)
         for k in query['fantasy_content']['league']['players']['player']:
             rosters.append(update_player_data(y,k,'FA'))
 
+    auth.data_pickle(filename="goalies.pickle",data=rosters)
+    rosters=[]
+
+    print("Getting Top 350 Rated Free Agent Forwards/Defenders")
+    for count in range(0,350,25):
+        print("...."+str(count))
+        query = player_search(league_url,count)
+        query = auth.api_query(y, query)
+        for k in query['fantasy_content']['league']['players']['player']:
+            rosters.append(update_player_data(y,k,'FA'))
+
+    auth.data_pickle(filename="forwards.pickle",data=rosters)
+    rosters=[]
 
     #iterate over teams
     num_teams = int(this_league['num_teams'])
@@ -110,7 +115,11 @@ for i in hpk:
         #get team roster
         r = auth.api_query(y, roster_data(team_code))##, last_day))
         this_roster = r['fantasy_content']['team']['roster']['players']['player']
+        pcnt = 0
+        print(len(this_roster))
         for k in this_roster:
+            pcnt +=1
+            print(pcnt)
             rosters.append(update_player_data(y,k,team_code))
 
 
