@@ -1,9 +1,6 @@
 ## = changes added by brian
 import auth
-import csv
 import datetime
-
-csv.register_dialect('ALM', delimiter=',', quoting=csv.QUOTE_ALL)
 
 y = auth.yahoo_session()
 
@@ -17,17 +14,32 @@ def league_data(league_code):
     return "http://fantasysports.yahooapis.com/fantasy/v2/league/" + league_code
 
 def team_data(team_code):
-    return "http://fantasysports.yahooapis.com/fantasy/v2/team/" + team_code
+    return "http://fantasysports.yahooapis.com/fantasy/v2/team/" + team_code + ";out=metadata,stats"
 
-##def roster_data(team_code, date_wanted):
-##    return "http://fantasysports.yahooapis.com/fantasy/v2/team/" + team_code + "/roster;date=" + date_wanted.isoformat()
 def roster_data(team_code):
     return "http://fantasysports.yahooapis.com/fantasy/v2/team/" + team_code + "/roster"
 
+def player_stats_data(player_key):
+    return "http://fantasysports.yahooapis.com/fantasy/v2/player/" + player_key + ";out=stats,percent_owned"
+
+def player_search(league_url,start,position="P",status="A"):
+    return league_url+"/players;sort=OR;sort_type=season;start=" + str(start) + ";position=" + position + ";status=" + status
+
+def update_player_data(AUTH, player, team_code):
+    player_stat_url = player_stats_data(player['player_key'])
+    player_data = auth.api_query(AUTH, player_stat_url)
+    player['queried_stats'] = player_data['fantasy_content']['player']['player_stats']
+    player['percent_owned'] = player_data['fantasy_content']['player']['percent_owned']
+    player['team_code'] = team_code
+    return player
+
+    
 
 hpk = [
     #NHL2014;109glen
-    {'gameid': 341, 'leagueid': 62035},
+    #{'gameid': 341, 'leagueid': 62035},
+    #NHL2015;109glen
+    {'gameid': 352, 'leagueid': 59140},
 ]
 
 leagues = []
@@ -37,10 +49,28 @@ rosters = []
 for i in hpk:
     #get league data
     league_code = make_league_code(i['gameid'], i['leagueid'])
-    l = auth.api_query(y, league_data(league_code))
+    league_url = league_data(league_code)
+    l = auth.api_query(y, league_url)
     #grab relevant part of dict
     this_league = l['fantasy_content']['league']
     leagues.append(this_league)
+
+    print("Getting Top 375 Rated Free Agent Forwards/Defenders")
+    for count in range(0,400,25):
+        print("...."+str(count))
+        query = player_search(league_url,count)
+        query = auth.api_query(y, query)
+        for k in query['fantasy_content']['league']['players']['player']:
+            rosters.append(update_player_data(y,k,'FA'))
+
+    print("Getting Top 50 Rated Free Agent Goalies")
+    for count in range(0,75,25):
+        print("...."+str(count))
+        query = player_search(league_url,count,position="G")
+        query = auth.api_query(y, query)
+        for k in query['fantasy_content']['league']['players']['player']:
+            rosters.append(update_player_data(y,k,'FA'))
+
 
     #iterate over teams
     num_teams = int(this_league['num_teams'])
@@ -74,36 +104,15 @@ for i in hpk:
         this_team.pop("team_logos", None)
         this_team.pop("roster_adds", None)
 
-        print (str(this_manager['nickname']))
+        print ("Getting Player Stats for " + str(this_manager['nickname']) + "'s Roster")
         teams.append(this_team)
 
         #get team roster
         r = auth.api_query(y, roster_data(team_code))##, last_day))
         this_roster = r['fantasy_content']['team']['roster']['players']['player']
         for k in this_roster:
-	    
-            k['owner_email'] = manager_email
-            k['owner_guid'] = manager_guid
-            k['team_code'] = team_code
-            ##k['date_captured'] = last_day
-            k['season'] = this_league['season']
-            k['full_name'] = k['name']['full']
-            k['first_name'] = k['name']['ascii_first']
-            k['last_name'] = k['name']['ascii_last']
-            k['image_url'] = k['headshot']['url']
-            k['eligible_positions'] = k['eligible_positions']['position']
-            k['selected_position'] = k['selected_position']['position']
-            if "status" not in k: k["status"] = None
-            if "starting_status" not in k: k["starting_status"] = None
-            if "has_player_notes" not in k: k["has_player_notes"] = None
-            if "has_recent_player_notes" not in k: k["has_recent_player_notes"] = None
-            if "on_disabled_list" not in k: k["on_disabled_list"] = None
-            if "is_editable" not in k: k["is_editable"] = None
-            k.pop("headshot", None)
-            k.pop("name", None)
-            k.pop("editorial_player_key", None)
-            k.pop("editorial_team_key", None)
-            rosters.append(k)
+            rosters.append(update_player_data(y,k,team_code))
+
 
 #write data
 auth.data_pickle(
