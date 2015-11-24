@@ -35,7 +35,7 @@ for i in yahoo_game:
        GET2 = auth.api_query(y, query.getdata(league_url,loopcount,2,status="T"))
        num_players_returned = int(GET1['fantasy_content']['league']['players']['@count'])
        for count in range(0,num_players_returned):
-          player = query.createplayer(GET1['fantasy_content']['league']['players']['player'][count])
+          player = query.createplayer(GET1['fantasy_content']['league']['players']['player'][count],True)
           player_dict[player[0]] = player[1]
           player_dict[player[0]] = query.updateplayerstat(player_dict[player[0]],GET1['fantasy_content']['league']['players']['player'][count])
           player_dict[player[0]] = query.updateplayerstat(player_dict[player[0]],GET2['fantasy_content']['league']['players']['player'][count])

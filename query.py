@@ -23,7 +23,7 @@ def createteam(team):
    }
    return (newtm['id'],newtm)
 
-def createplayer(player):
+def createplayer(player,isTaken=False):
    newpl = {
     'key':player['player_key'],
     'id':player['player_id'],
@@ -36,7 +36,8 @@ def createplayer(player):
     'statsLM':False,
     'statsSEA':False,
     'pctown':False,
-    'pctdelta':False
+    'pctdelta':False,
+    'istaken':isTaken
    }
    return [newpl['id'],newpl]
 
