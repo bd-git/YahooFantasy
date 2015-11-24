@@ -69,14 +69,14 @@ def read_stored_auth():
     return final_auth
 
 
-def test_stored_auth():
+def test_stored_auth(maxageinminutes=55):
     if os.path.exists("auth.yml"):
-        return (time.time() - os.stat("auth.yml").st_mtime) < 3300 #55 minutes
+        return (time.time() - os.stat("auth.yml").st_mtime) < maxageinminutes*60 #auth expires after 60min, if it is 55min old, renew
     return False
 
 
-def yahoo_session():
-    if(test_stored_auth()):
+def yahoo_session(maxageinminutes=55):
+    if(test_stored_auth(maxageinminutes)):
         return session_from_auth(read_stored_auth())
     else:
         user_auth()

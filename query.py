@@ -1,14 +1,8 @@
-## = changes added by brian
-import auth
-import datetime
-
-y = auth.yahoo_session()
-
 def make_league_code(gameid, leagueid):
     return str(gameid) + '.l.' + str(leagueid)
 
-def make_team_code(gameid, leagueid, teamid):
-    return str(gameid) + '.l.' + str(leagueid) + '.t.' + str(teamid)
+def make_team_code(leaguecode, teamid):
+    return  leaguecode + '.t.' + str(teamid)
 
 def league_data(league_code):
     return "http://fantasysports.yahooapis.com/fantasy/v2/league/" + league_code
@@ -19,121 +13,102 @@ def team_data(team_code):
 def roster_data(team_code):
     return "http://fantasysports.yahooapis.com/fantasy/v2/team/" + team_code + "/roster"
 
-def player_stats_data(player_key):
-    return "http://fantasysports.yahooapis.com/fantasy/v2/player/" + player_key + ";out=stats,percent_owned"
+def createteam(team):
+   newtm = {
+    'key':team['team_key'],
+    'id':team['team_id'],
+    'name':team['name'],
+    'stats':False,
+    'roster':False
+   }
+   return (newtm['id'],newtm)
 
-def player_search(league_url,start,position="P",status="A"):
-    return league_url+"/players;sort=OR;sort_type=season;start=" + str(start) + ";position=" + position + ";status=" + status
+def createplayer(player):
+   newpl = {
+    'key':player['player_key'],
+    'id':player['player_id'],
+    'name':player['name']['full'],
+    'edkeyPlayer':player['editorial_player_key'],
+    'edkeyTeam':player['editorial_team_key'],
+    'edkeyTeamDisp':player['editorial_team_abbr'],
+    'postype':player['position_type'],
+    'poseligible':player['eligible_positions']['position'],
+    'statsLM':False,
+    'statsSEA':False,
+    'pctown':False,
+    'pctdelta':False
+   }
+   return [newpl['id'],newpl]
 
-def update_player_data(AUTH, player, team_code):
-    player_stat_url = player_stats_data(player['player_key'])
-    player_data = auth.api_query(AUTH, player_stat_url)
-    player['queried_stats'] = player_data['fantasy_content']['player']['player_stats']
-    player['percent_owned'] = player_data['fantasy_content']['player']['percent_owned']
-    player['team_code'] = team_code
-    return player
+def updateplayerstat(player, stats):
+   try:
+      if stats['player_stats']['coverage_type']=='season' and player['statsSEA']==False:
+         player['statsSEA']=parseplayerstat(stats['player_stats']['stats']['stat'])
+   except:
+      True
+   try:
+       if stats['player_stats']['coverage_type']=='lastmonth' and player['statsLM']==False:
+         player['statsLM']=parseplayerstat(stats['player_stats']['stats']['stat'])
+   except:
+      True
+   try:
+      if stats['percent_owned'] and player['pctown']==False:
+        player['pctown']=stats['percent_owned']['value']
+        player['pctdelta']=stats['percent_owned']['delta']
+   except:
+      True 
+   return(player)
 
-    
+def parseplayerstat(player_stats_stats_stat):
+   playerstats=player_stats_stats_stat
+   statdict={}
+   for x in playerstats:
+       statdict[x['stat_id']]=x['value']
+   return statdict
 
-hpk = [
-    #NHL2014;109glen
-    #{'gameid': 341, 'leagueid': 62035},
-    #NHL2015;109glen
-    {'gameid': 352, 'leagueid': 59140},
-]
-
-leagues = []
-teams = []
-rosters = []
-
-for i in hpk:
-    #get league data
-    league_code = make_league_code(i['gameid'], i['leagueid'])
-    league_url = league_data(league_code)
-    l = auth.api_query(y, league_url)
-    #grab relevant part of dict
-    this_league = l['fantasy_content']['league']
-    leagues.append(this_league)
-
-    print("Getting Top 50 Rated Free Agent Goalies")
-    for count in range(0,50,25):
-        print("...."+str(count))
-        query = player_search(league_url,count,position="G")
-        query = auth.api_query(y, query)
-        for k in query['fantasy_content']['league']['players']['player']:
-            rosters.append(update_player_data(y,k,'FA'))
-
-    auth.data_pickle(filename="goalies.pickle",data=rosters)
-    rosters=[]
-
-    print("Getting Top 350 Rated Free Agent Forwards/Defenders")
-    for count in range(0,350,25):
-        print("...."+str(count))
-        query = player_search(league_url,count)
-        query = auth.api_query(y, query)
-        for k in query['fantasy_content']['league']['players']['player']:
-            rosters.append(update_player_data(y,k,'FA'))
-
-    auth.data_pickle(filename="forwards.pickle",data=rosters)
-    rosters=[]
-
-    #iterate over teams
-    num_teams = int(this_league['num_teams'])
-    for j in range(1, num_teams + 1):
-        #get basic team data
-        team_code = make_team_code(i['gameid'], i['leagueid'], j)
-        t = auth.api_query(y, team_data(team_code))
-        #just relevant response
-        this_team = t['fantasy_content']['team']
-        #include season in dict
-        this_team['season'] = this_league['season']
-        this_team['logo'] = this_team['team_logos']['team_logo']['url']
-
-        #handle co-managers
-        this_manager = this_team['managers']['manager']
-        if type(this_manager) == list:
-            this_manager = this_manager[0]
-
-        this_team['manager_id'] = this_manager['manager_id']
-
-        this_team['manager_nickname'] = this_manager['nickname']
-        if 'guid' in this_manager: manager_guid = this_manager['guid']
-        if 'guid' not in this_manager: manager_guid = None
-        this_team['manager_guid'] = manager_guid
-        if 'email' in this_manager: manager_email = this_manager['email']
-        if 'email' not in this_manager: manager_email = None
-        this_team['manager_email'] = manager_email
-        if "is_owned_by_current_login" not in this_team: this_team["is_owned_by_current_login"] = None
-        #drop some keys
-        this_team.pop("managers", None)
-        this_team.pop("team_logos", None)
-        this_team.pop("roster_adds", None)
-
-        print ("Getting Player Stats for " + str(this_manager['nickname']) + "'s Roster")
-        teams.append(this_team)
-
-        #get team roster
-        r = auth.api_query(y, roster_data(team_code))##, last_day))
-        this_roster = r['fantasy_content']['team']['roster']['players']['player']
-        pcnt = 0
-        print(len(this_roster))
-        for k in this_roster:
-            pcnt +=1
-            print(pcnt)
-            rosters.append(update_player_data(y,k,team_code))
+def parse_settings(sets):
+   for x in sets:
+        print(x['name']+','+x['stat_id'])
+        print('')
 
 
-#write data
-auth.data_pickle(
-    filename="leagues.pickle",
-    data=leagues
-)
-auth.data_pickle(
-    filename="teams.pickle",
-    data=teams
-)
-auth.data_pickle(
-    filename="rosters.pickle",
-    data=rosters
-)
+   """
+SORT
+{stat_id} (statid integer)...NAME (last, first)...OR (overall rank)...AR (actual rank)...PTS (fantasy points)
+SORT_TYPE
+season...date...lastweek...lastmonth
+SORT_DATE (if SORT_TYPE = date)
+YYYY-MM-DD (/players;sort_type=date;sort_date=2010-02-01)
+STATUS
+A (all available players)...FA (free agents only)...W (waivers only)...T (all taken players)...K (keepers onl$
+POSITION
+G Goalie...P D/C/LW/RW
+   """
+
+def getdata(league_url,start,output,sortby="lastmonth",position="P",status="A"):
+    """ 
+Get data for multiple players
+
+Args:
+	leauge_url (string): generated league url
+	start (int): index at which to start player list
+	output (int): type of desired output:
+		1 - season stats + percent_owned
+		2 - last month stats
+		3 - percent_owned
+		4 - season stats
+	sortby (Optional str): timeframe category for which to sort on
+	position (Optional str): P or G typically
+	status (Optional str): select player pool to search on (ie A = all available players, T = unavailable players, etc)
+
+Returns:
+	Ordered Dict if successful
+   """
+    options = {
+    1:";out=percent_owned,stats",
+    2:"/stats;type=lastmonth",
+    3:"/percent_owned",
+    4:"/stats"
+    }
+    return league_url+"/players;sort=AR;sort_type=" + sortby + ";start=" + str(start) + ";position=" + position + ";status=" + status + options[output]
 
