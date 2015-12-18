@@ -16,7 +16,7 @@ def roster_data(team_code):
 def createteam(team):
    newtm = {
     'team_key':team['team_key'],
-    'team_id':team['team_id'],
+    'team_id':int(team['team_id']),
     'team_name':team['name'],
     'team_stats':False,
     'team_roster':False
