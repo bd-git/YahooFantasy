@@ -15,50 +15,50 @@ def roster_data(team_code):
 
 def createteam(team):
    newtm = {
-    'key':team['team_key'],
-    'id':team['team_id'],
-    'name':team['name'],
-    'stats':False,
-    'roster':False
+    'team_key':team['team_key'],
+    'team_id':team['team_id'],
+    'team_name':team['name'],
+    'team_stats':False,
+    'team_roster':False
    }
-   return (newtm['id'],newtm)
+   return newtm
 
 def createplayer(player,isTaken=False):
    newpl = {
-    'key':player['player_key'],
-    'id':player['player_id'],
-    'name':player['name']['full'],
-    'edkeyPlayer':player['editorial_player_key'],
-    'edkeyTeam':player['editorial_team_key'],
-    'edkeyTeamDisp':player['editorial_team_abbr'],
-    'postype':player['position_type'],
-    'poseligible':player['eligible_positions']['position'],
-    'statsLM':False,
-    'statsSEA':False,
-    'pctown':False,
-    'pctdelta':False,
+    'player_key':player['player_key'],
+    'player_id':player['player_id'],
+    'player_name':player['name']['full'],
+    'editorial_player':player['editorial_player_key'],
+    'editorial_team':player['editorial_team_key'],
+    'editorial_abbr':player['editorial_team_abbr'],
+    'position_type':player['position_type'],
+    'position_eligible':player['eligible_positions']['position'],
+    'stats_lastmonth':False,
+    'stats_season':False,
+    'stats_percentown':False,
+    'stats_percentowndelta':False,
     'istaken':isTaken
    }
-   return [newpl['id'],newpl]
+   return newpl
 
 def updateplayerstat(player, stats):
    try:
-      if stats['player_stats']['coverage_type']=='season' and player['statsSEA']==False:
-         player['statsSEA']=parseplayerstat(stats['player_stats']['stats']['stat'])
+      if stats['player_stats']['coverage_type']=='season' and player['stats_season']==False:
+         player['stats_season']=parseplayerstat(stats['player_stats']['stats']['stat'])
    except:
       True
    try:
-       if stats['player_stats']['coverage_type']=='lastmonth' and player['statsLM']==False:
-         player['statsLM']=parseplayerstat(stats['player_stats']['stats']['stat'])
+       if stats['player_stats']['coverage_type']=='lastmonth' and player['stats_lastmonth']==False:
+         player['stats_lastmonth']=parseplayerstat(stats['player_stats']['stats']['stat'])
    except:
       True
    try:
-      if stats['percent_owned'] and player['pctown']==False:
-        player['pctown']=stats['percent_owned']['value']
-        player['pctdelta']=stats['percent_owned']['delta']
+      if stats['percent_owned'] and player['stats_percentown']==False:
+        player['stats_percentown']=stats['percent_owned']['value']
+        player['stats_percentowndelta']=stats['percent_owned']['delta']
    except:
       True 
-   return(player)
+   return player
 
 def parseplayerstat(player_stats_stats_stat):
    playerstats=player_stats_stats_stat
@@ -68,10 +68,11 @@ def parseplayerstat(player_stats_stats_stat):
    return statdict
 
 def parse_settings(sets):
+   ret=[]
    for x in sets:
+        ret.append(x['name']+','+x['stat_id'])
         print(x['name']+','+x['stat_id'])
-        print('')
-
+   return ret
 
    """
 SORT

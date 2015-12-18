@@ -35,10 +35,10 @@ for i in yahoo_game:
         players = []
         for i in range(0,length):
            players.append(this_roster[i]['player_id'])
-        k,dic = query.createteam(this_team)
+        dic = query.createteam(this_team)
         dic['roster']=players
         dic['stats']=query.parseplayerstat(this_team['team_stats']['stats']['stat'])
-        teams[k]=dic
+        teams[int(dic['team_id'])]=dic
 
 
 auth.data_pickle(

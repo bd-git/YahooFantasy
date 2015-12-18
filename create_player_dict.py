@@ -17,9 +17,6 @@ for i in yahoo_game:
     #get league data
     league_code = query.make_league_code(i['gameid'], i['leagueid'])
     league_url = query.league_data(league_code)
-    #settings = league_url+"/settings"
-    #settings = auth.api_query(y, settings)
-    #parse_settings(settings['fantasy_content']['league']['settings']['stat_categories']['stats']['stat'])
     l = auth.api_query(y, league_url)
 
     #grab relevant part of dict
@@ -31,14 +28,28 @@ for i in yahoo_game:
     # Get All Taken Players
     loopcount=0
     while(True):
+       # 2 Gets: first = 1 for seas+pct
+       #         secnd = 2 for lastmonth 
        GET1 = auth.api_query(y, query.getdata(league_url,loopcount,1,status="T"))
        GET2 = auth.api_query(y, query.getdata(league_url,loopcount,2,status="T"))
        num_players_returned = int(GET1['fantasy_content']['league']['players']['@count'])
+
+       # Relevent part of get
+       GET_SEA = GET1['fantasy_content']['league']['players']['player']
+       GET_LM  = GET2['fantasy_content']['league']['players']['player']
+
        for count in range(0,num_players_returned):
-          player = query.createplayer(GET1['fantasy_content']['league']['players']['player'][count],True)
-          player_dict[player[0]] = player[1]
-          player_dict[player[0]] = query.updateplayerstat(player_dict[player[0]],GET1['fantasy_content']['league']['players']['player'][count])
-          player_dict[player[0]] = query.updateplayerstat(player_dict[player[0]],GET2['fantasy_content']['league']['players']['player'][count])
+          # Create player 'object' using player information (name, etc) from one of the gets
+          # createplayer( x, True) --- True = Taken/NonFreeAgent
+          new_player = query.createplayer(GET_SEA[count], True)
+
+          # Update new player with Season Stats from get
+          # Update new player with LMonth Stats from get
+          # Add new player to player dictionary
+          new_player = query.updateplayerstat(new_player ,GET_SEA[count])
+          new_player = query.updateplayerstat(new_player ,GET_LM[count])
+          player_dict[int(new_player['player_id'])] = new_player
+
        loopcount+=25
 
        if (num_players_returned<25):
@@ -49,15 +60,18 @@ for i in yahoo_game:
     while(True):
        GET1 = auth.api_query(y, query.getdata(league_url,loopcount,1,status="A"))
        GET2 = auth.api_query(y, query.getdata(league_url,loopcount,2,status="A"))
+       GET_SEA = GET1['fantasy_content']['league']['players']['player']
+       GET_LM  = GET2['fantasy_content']['league']['players']['player']
+
        for count in range(0,25):
-          player = query.createplayer(GET1['fantasy_content']['league']['players']['player'][count])
-          player_dict[player[0]] = player[1]
-          player_dict[player[0]] = query.updateplayerstat(player_dict[player[0]],GET1['fantasy_content']['league']['players']['player'][count])
-          player_dict[player[0]] = query.updateplayerstat(player_dict[player[0]],GET2['fantasy_content']['league']['players']['player'][count])
+          new_player = query.createplayer(GET_SEA[count])
+          new_player = query.updateplayerstat(new_player, GET_SEA[count])
+          new_player = query.updateplayerstat(new_player, GET_LM[count])
+          player_dict[int(new_player['player_id'])] = new_player
+
        loopcount+=25
        if loopcount==200:
           break
-
 
 auth.data_pickle(
     filename="players.pickle",
