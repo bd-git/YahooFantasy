@@ -36,8 +36,8 @@ for i in yahoo_game:
         for i in range(0,length):
            players.append(this_roster[i]['player_id'])
         dic = query.createteam(this_team)
-        dic['roster']=players
-        dic['stats']=query.parseplayerstat(this_team['team_stats']['stats']['stat'])
+        dic['team_roster']=players
+        dic['team_stats']=query.parseplayerstat(this_team['team_stats']['stats']['stat'])
         teams[int(dic['team_id'])]=dic
 
 
