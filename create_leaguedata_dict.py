@@ -21,6 +21,7 @@ for i in yahoo_game:
     settings = league_url+"/settings"
     settings = auth.api_query(y, settings)
     league_data = query.parse_settings(settings['fantasy_content']['league']['settings']['stat_categories']['stats']['stat'])
+    league_data = { item.split(',')[0]:int(item.split(',')[1]) for item in league_data}
 
 auth.data_pickle(
     filename="leaguedata.pickle",

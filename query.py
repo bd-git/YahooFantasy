@@ -26,7 +26,7 @@ def createteam(team):
 def createplayer(player,isTaken=False):
    newpl = {
     'player_key':player['player_key'],
-    'player_id':player['player_id'],
+    'player_id':int(player['player_id']),
     'player_name':player['name']['full'],
     'editorial_player':player['editorial_player_key'],
     'editorial_team':player['editorial_team_key'],
@@ -54,18 +54,21 @@ def updateplayerstat(player, stats):
       True
    try:
       if stats['percent_owned'] and player['stats_percentown']==False:
-        player['stats_percentown']=stats['percent_owned']['value']
+        player['stats_percentown']=int(stats['percent_owned']['value'])
         player['stats_percentowndelta']=stats['percent_owned']['delta']
    except:
-      True 
+      True
    return player
+
+def stat_stoi(to_convert):
+   return {int(k):float(v.replace('-','0')) for (k,v) in to_convert.items()}
 
 def parseplayerstat(player_stats_stats_stat):
    playerstats=player_stats_stats_stat
    statdict={}
    for x in playerstats:
        statdict[x['stat_id']]=x['value']
-   return statdict
+   return stat_stoi(statdict)
 
 def parse_settings(sets):
    ret=[]

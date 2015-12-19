@@ -1,3 +1,14 @@
+###
+'''
+
+TODO? put this somewherein:
+from time import localtime, strftime
+strftime("%Y%m%d_%H%M%S", localtime())
+
+'''
+##
+
+
 ## = changes added by brian
 import auth
 import datetime
