@@ -66,7 +66,7 @@ for i in yahoo_game:
        if (num_players_returned<25):
           break
 
-    # Get Top 200 Free Agent Players
+    # Get Top 200 Free Agent 'P' Players
     loopcount=0
     while(True):
        GET1 = auth.api_query(y, query.getdata(league_url,loopcount,1,status="A"))
@@ -82,6 +82,24 @@ for i in yahoo_game:
 
        loopcount+=25
        if loopcount==200:
+          break
+    loopcount=0
+
+    # Get Top 100 Free Agent 'D' Players
+    while(True):
+       GET1 = auth.api_query(y, query.getdata(league_url,loopcount,1,status="A",position="D"))
+       GET2 = auth.api_query(y, query.getdata(league_url,loopcount,2,status="A",position="D"))
+       GET_SEA = GET1['fantasy_content']['league']['players']['player']
+       GET_LM  = GET2['fantasy_content']['league']['players']['player']
+
+       for count in range(0,25):
+          new_player = query.createplayer(GET_SEA[count])
+          new_player = query.updateplayerstat(new_player, GET_SEA[count])
+          new_player = query.updateplayerstat(new_player, GET_LM[count])
+          player_dict[int(new_player['player_id'])] = new_player
+
+       loopcount+=25
+       if loopcount==100:
           break
 
 auth.data_pickle(
