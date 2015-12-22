@@ -91,26 +91,3 @@ def data_pickle(data, filename):
     with open(filename,'wb') as f:
         pickle.dump(data,f,pickle.HIGHEST_PROTOCOL)
 
-def data_to_csv(target_dir, data_to_write, desired_name):
-    """Convenience function to write a dict to CSV with appropriate parameters."""
-    #generate directory if doesn't exist
-    global d
-    if len(data_to_write) == 0:
-        return None
-    if not os.path.exists(target_dir):
-        os.makedirs(target_dir)
-    if type(data_to_write) == dict:
-        #order dict by keys
-        d = OrderedDict(sorted(data_to_write.items()))
-        keys = d.keys()
-    if type(data_to_write) == list:
-        d = data_to_write
-        keys = data_to_write[0].keys()
-    with open("%s/%s.csv" % (target_dir, desired_name), 'wb') as f:
-        dw = unicodecsv.DictWriter(f, keys, dialect='ALM')
-        dw.writeheader()
-        if type(data_to_write) == dict:
-            dw.writerow(d)
-        if type(data_to_write) == list:
-            dw.writerows(d)
-    f.close()

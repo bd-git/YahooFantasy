@@ -37,7 +37,8 @@ def createplayer(player,isTaken=False):
     'stats_season':False,
     'stats_percentown':False,
     'stats_percentowndelta':False,
-    'istaken':isTaken
+    'is_taken':isTaken,
+    'league_teamid':0
    }
    return newpl
 
