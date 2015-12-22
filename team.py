@@ -61,8 +61,19 @@ def makeRandomTeam(clist, rwlist, lwlist, dlist, numC=5,numRW=5,numLW=5,numD=6,n
 
    return team
 
-#team = makeRandomTeam(c,rw,lw,d)
+def statidHeader(listofstatids):
+   header=[]
+   l = readPickle('leaguedata')
+   for id in listofstatids:
+     for name in l:
+       if l[name]==id:
+         header.append(name)
+   #print(header)
+   return header
 
-#for x in team:
-#  print(p[x]['player_name'],p[x]['position_eligible'])
-
+def playerNames(listofplayerids,playerdic):
+   players=[]
+   for id in listofplayerids:
+     players.append(playerdic[id]['player_name'])
+     #print(playerdic[id]['player_name'],playerdic[id]['position_eligible'])
+   return players
