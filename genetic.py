@@ -23,7 +23,8 @@ def run(
    cList = team.makePositionList('C',playersDic,TeamsToInclude)
    dList = team.makePositionList('D',playersDic,TeamsToInclude)
 
-   creator.create("FitnessMax", base.Fitness, weights=tuple( [x/10 for x in range(10,(10-len(StatsToMaximize)),-1)] ) )
+   creator.create("FitnessMax", base.Fitness, weights=(1.0,) )
+   #creator.create("FitnessMax", base.Fitness, weights=tuple( [x/10 for x in range(10,(10-len(StatsToMaximize)),-1)] ) )
    creator.create("Team", list, fitness=creator.FitnessMax)
 
    toolbox = base.Toolbox()
@@ -32,7 +33,8 @@ def run(
    toolbox.register("evaluate", evalTeamFitness, BT=BenchmarkTeam, stats=StatsToMaximize, p=playersDic, time=TimeFrame)
    toolbox.register("mate", tools.cxTwoPoint)
    toolbox.register("mutate", mutateTeam, indpb=0.05, c=cList, rw=rwList, lw=lwList, d=dList, npos=NumbersPerPositionAsList)
-   toolbox.register("select", tools.selNSGA2)
+   #toolbox.register("select", tools.selNSGA2)
+   toolbox.register("select", tools.selTournament, tournsize=10)
    toolbox.decorate("mate", checkCrossover(c=cList, rw=rwList, lw=lwList, d=dList, npos=NumbersPerPositionAsList))
 
    random.seed()
@@ -49,12 +51,20 @@ def generateTeam(c,rw,lw,d,npos):
 def evalTeamFitness(individual, BT, stats, p, time):
    i = team.calcTeamStats(individual,stats,p,time)
    BT = team.calcTeamStats(BT,stats,p,time)
+   i[stats.index(31)]=i[stats.index(31)]+800
+   i[stats.index(32)]=i[stats.index(32)]+800
+   i[stats.index(4)]=i[stats.index(4)]+100
+   i[stats.index(1)]=i[stats.index(1)]+5
+   BT[stats.index(31)]=BT[stats.index(31)]+800
+   BT[stats.index(32)]=BT[stats.index(32)]+800
+   BT[stats.index(4)]=BT[stats.index(4)]+100
+   BT[stats.index(1)]=BT[stats.index(1)]+5
    x= tuple( [a/b for a,b in zip(i,BT)] )
    if 0.0 in x:
      print(x)
      input()
-   return tuple( [a/b for a,b in zip(i,BT)] )
-   #return sum([a/b for a,b in zip(i,BT)]),
+   #return tuple( [a/b for a,b in zip(i,BT)] )
+   return sum([a/b for a,b in zip(i,BT)])-len(stats),
 
 def mutateTeam(individual,indpb,c,rw,lw,d,npos):
     newteam = generateUniqueTeam([individual],c,rw,lw,d,npos)
