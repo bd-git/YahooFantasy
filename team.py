@@ -9,16 +9,17 @@ def readPickle(filename):
         return data
 
 def makePositionList(pos, playersdic, listofteamstoinclude=[i for i in range(0,13)]):
-    injured = ['NA','IR','IR+']
+    #injured = ['NA','IR','IR+']
+    injured = ['DUMMY']
     plist=[]
     for x in playersdic:
        eligible = playersdic[x]['position_eligible']
        leagueteam = playersdic[x]['league_teamid']
        if True in [ (position in injured) for position in eligible ]:
-          continue
+          'Skip Injured'
        elif True not in [ (teamid == leagueteam) for teamid in listofteamstoinclude ]:
-          continue
-       else:
+          'Skip on on Team'
+       elif pos in eligible:
           plist.append(x)
     return plist
 
@@ -31,7 +32,8 @@ def popFromOtherPositionLists(playerid, listOfPositionLists):
         True
    return tuple(positionLists)
 
-def makeRandomTeam(clist, rwlist, lwlist, dlist, numC=5,numRW=5,numLW=5,numD=6,numU=3):
+def makeRandomTeam(clist, rwlist, lwlist, dlist, NumbersPerPositionAsList ):
+   numC,numRW,numLW,numD,numU = NumbersPerPositionAsList
    team=[]
    c = deepcopy(clist)
    rw = deepcopy(rwlist)
@@ -41,18 +43,19 @@ def makeRandomTeam(clist, rwlist, lwlist, dlist, numC=5,numRW=5,numLW=5,numD=6,n
 
    for i in range(numC):
       newplayer = c.pop(random.randint(0,len(c)-1))
-      rw,lw = popFromOtherPositionLists(newplayer,[rw,lw])
+      rw,lw,d = popFromOtherPositionLists(newplayer,[rw,lw,d])
       team.append(newplayer)
    for i in range(numRW):
       newplayer = rw.pop(random.randint(0,len(rw)-1))
-      c,lw = popFromOtherPositionLists(newplayer,[c,lw])
+      c,lw,d = popFromOtherPositionLists(newplayer,[c,lw,d])
       team.append(newplayer)
    for i in range(numLW):
       newplayer = lw.pop(random.randint(0,len(lw)-1))
-      c,rw = popFromOtherPositionLists(newplayer,[c,rw])
+      c,rw,d = popFromOtherPositionLists(newplayer,[c,rw,d])
       team.append(newplayer)
    for i in range(numD):
       newplayer = d.pop(random.randint(0,len(d)-1))
+      c,rw,lw = popFromOtherPositionLists(newplayer,[c,rw,lw])
       team.append(newplayer)
    u=list(set(c+lw+rw+d))
    for i in range(numU):
@@ -77,3 +80,11 @@ def playerNames(listofplayerids,playerdic):
      players.append(playerdic[id]['player_name'])
      #print(playerdic[id]['player_name'],playerdic[id]['position_eligible'])
    return players
+
+def calcTeamStats(TeamAsList, StatCatsAsList, PlayersAsDic, TimeFrame):
+   individual = TeamAsList
+   stats = StatCatsAsList
+   p = PlayersAsDic
+   listOfPlayerStatsForIndividual = [[p[player][TimeFrame][statid] for statid in stats]for player in individual]
+   combinedStatsForIndividual = tuple([sum(totalstats) for totalstats in zip(*listOfPlayerStatsForIndividual)])
+   return combinedStatsForIndividual

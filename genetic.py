@@ -4,14 +4,18 @@ from deap import algorithms
 from deap import base
 from deap import creator
 from deap import tools
+from copy import deepcopy
 import team
 
 def run(
+             BenchmarkTeam,
+             StatsToMaximize,
              TeamsToInclude=[x for x in range(1,13)],
-             Population=300,
-             Generations=40,
-             StatsToMaximize = [14,16,1,2,31,32],
-             PlayersDictionary = team.readPickle('players')
+             Population=1000,
+             Generations=60,
+             PlayersDictionary = team.readPickle('players'),
+             NumbersPerPositionAsList = [5,5,5,6,3],
+             TimeFrame = 'stats_lastmonth'
             ):
    playersDic = PlayersDictionary
    rwList = team.makePositionList('RW',playersDic,TeamsToInclude)
@@ -19,29 +23,67 @@ def run(
    cList = team.makePositionList('C',playersDic,TeamsToInclude)
    dList = team.makePositionList('D',playersDic,TeamsToInclude)
 
-   creator.create("FitnessMax", base.Fitness, weights=tuple([1.0]*len(StatsToMaximize)) )
+   creator.create("FitnessMax", base.Fitness, weights=tuple( [x/10 for x in range(10,(10-len(StatsToMaximize)),-1)] ) )
    creator.create("Team", list, fitness=creator.FitnessMax)
 
    toolbox = base.Toolbox()
-   toolbox.register("genteam", generateTeam, c=cList, rw=rwList, lw=lwList, d=dList)
+   toolbox.register("genteam", generateTeam, c=cList, rw=rwList, lw=lwList, d=dList, npos=NumbersPerPositionAsList)
    toolbox.register("population", tools.initRepeat, list, toolbox.genteam)
-   toolbox.register("evaluate", evalTeamFitness, stats=StatsToMaximize, p=playersDic)
+   toolbox.register("evaluate", evalTeamFitness, BT=BenchmarkTeam, stats=StatsToMaximize, p=playersDic, time=TimeFrame)
    toolbox.register("mate", tools.cxTwoPoint)
-   toolbox.register("mutate", tools.mutShuffleIndexes, indpb=0.05)
-   toolbox.register("select", tools.selBest)
+   toolbox.register("mutate", mutateTeam, indpb=0.05, c=cList, rw=rwList, lw=lwList, d=dList, npos=NumbersPerPositionAsList)
+   toolbox.register("select", tools.selNSGA2)
+   toolbox.decorate("mate", checkCrossover(c=cList, rw=rwList, lw=lwList, d=dList, npos=NumbersPerPositionAsList))
 
    random.seed()
    pop = toolbox.population(n=Population)
    hof = tools.HallOfFame(1)
    algorithms.eaSimple(pop, toolbox, cxpb=0.5, mutpb=0.2, ngen=Generations,  halloffame=hof, verbose=True)
 
-   return( hof[0] , hof[0].fitness.values , team.playerNames(hof[0],playersDic) , team.statidHeader(StatsToMaximize) )
+   return( hof[0] , hof[0].fitness.values )
 
-def generateTeam(c,rw,lw,d):
-   return creator.Team(team.makeRandomTeam(c,rw,lw,d))
+def generateTeam(c,rw,lw,d,npos):
+   x=creator.Team(team.makeRandomTeam(c,rw,lw,d,npos))
+   return x
 
-def evalTeamFitness(individual, stats, p):
-   listOfPlayerStatsForIndividual = [[p[player]['stats_lastmonth'][statid] for statid in stats]for player in individual]
-   combinedStatsForIndividual = tuple([sum(totalstats) for totalstats in zip(*listOfPlayerStatsForIndividual)])
-   return combinedStatsForIndividual
+def evalTeamFitness(individual, BT, stats, p, time):
+   i = team.calcTeamStats(individual,stats,p,time)
+   BT = team.calcTeamStats(BT,stats,p,time)
+   x= tuple( [a/b for a,b in zip(i,BT)] )
+   if 0.0 in x:
+     print(x)
+     input()
+   return tuple( [a/b for a,b in zip(i,BT)] )
+   #return sum([a/b for a,b in zip(i,BT)]),
+
+def mutateTeam(individual,indpb,c,rw,lw,d,npos):
+    newteam = generateUniqueTeam([individual],c,rw,lw,d,npos)
+    size = len(individual)
+
+    for i in range(size):
+        if random.random() < indpb:
+          individual[i]=newteam[i]
+    return individual,
+
+def generateUniqueTeam(individuals,c,rw,lw,d,npos):
+    cm=deepcopy(c)
+    rm=deepcopy(rw)
+    lm=deepcopy(lw)
+    dm=deepcopy(d)
+    for t in individuals:
+       for player in t:
+          cm,rm,lm,dm=team.popFromOtherPositionLists(player,[cm,rm,lm,dm])
+    return generateTeam(cm,rm,lm,dm,npos)
+
+def checkCrossover(c,rw,lw,d,npos):
+    Expected = sum(npos)
+    def decorator(func):
+        def wrapper(*args, **kargs):
+            off1,off2 = func(*args, **kargs)
+            # if first crossover produced duplicates, perform until no duplicates
+            while(not (len(set(off1))==Expected and len(set(off2))==Expected)):
+               off1,off2 = func(*args, **kargs)
+            return (off1,off2)
+        return wrapper
+    return decorator
 
